@@ -35,7 +35,8 @@ public extension RGBComponent {
 public protocol RGBAComponent:
  RGBComponent,
  Codable,
- Hashable {
+ Hashable,
+ Equatable {
  var red: Double { get }
  var green: Double { get }
  var blue: Double { get }
@@ -511,7 +512,6 @@ public extension RGBAComponent {
  }
 
  var shadow: Self { luminosity(0.35) }
- var darkened: Self { withBrightness(0.8).withSaturation(0.75) }
  var overlay: Self { alpha(0.8).withSaturation(0.75) }
  var highlight: Self { luminosity(0.9) }
 

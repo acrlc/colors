@@ -11,6 +11,7 @@ final class ColorsTests: XCTestCase {
   XCTAssert(white.isLight)
  }
 
+ /// FIXME: iOS produces different results
  func testMapping() throws {
   XCTAssert(RGBAColor.black.inverted == .white)
   // combination of red and green

@@ -58,16 +58,6 @@ public extension Color {
 
  #if os(iOS)
  @inlinable
- static var accent: Self {
-  guard
-   let color =
-   Color.Native(named: "AccentColor") else {
-   return Self(uiColor: Color.accentColor)
-  }
-  return Self(uiColor: color)
- }
-
- @inlinable
  static var background: Self { Self(uiColor: .systemBackground) }
  @inlinable
  static var groupedBackground: Self {
@@ -105,21 +95,8 @@ public extension Color {
  static var placeholder: Self { Self(uiColor: .placeholderText) }
  @inlinable
  static var separator: Self { Self(uiColor: .separator) }
- @inlinable
- static var outline: Self { label.light }
 
  #elseif os(macOS)
- @available(macOS 12.0, *)
- @inlinable
- static var accent: Self {
-  guard
-   let color =
-   Color.Native(named: "AccentColor") else {
-   return Self(nsColor: .controlAccentColor)
-  }
-  return Self(nsColor: color)
- }
-
  @available(macOS 12.0, *)
  @inlinable
  static var background: Self { Self(nsColor: .windowBackgroundColor) }
