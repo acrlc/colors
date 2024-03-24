@@ -1,6 +1,6 @@
-import XCTest
 @testable import Colors
 import struct SwiftUI.Color
+import XCTest
 
 final class ColorsTests: XCTestCase {
  func testPerception() {
@@ -10,7 +10,7 @@ final class ColorsTests: XCTestCase {
   let white = RGBAColor.white
   XCTAssert(white.isLight)
  }
- 
+
  func testMapping() throws {
   XCTAssert(RGBAColor.black.inverted == .white)
   // combination of red and green
@@ -37,7 +37,7 @@ final class ColorsTests: XCTestCase {
   let encoder = JSONEncoder()
   let decoder = JSONDecoder()
   let data = try encoder.encode(color)
-  
+
   // FIXME: some native colors lose precision when encoding or decoding
   // so using the type `RGBAColor` to decode works but
   // this could be due to what process occurs when retrieving components

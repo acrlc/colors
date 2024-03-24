@@ -21,7 +21,7 @@ public extension RGBAColor {
 
  var components: [Double] { [red, green, blue, alpha] }
  var hsbComponents: [Double] {
-  let r = self.red, g = self.green, b = self.blue
+  let r = red, g = green, b = blue
   let maximum = max(r, g, b), minimum = min(r, g, b)
   var h: Double = 0,
       s: Double = 0,
@@ -40,6 +40,6 @@ public extension RGBAColor {
    }
    h /= 6
   }
-  return [h, s, v, self.alpha]
+  return [h, s, v, alpha]
  }
 }

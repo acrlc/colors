@@ -54,7 +54,8 @@ public extension RGBAComponent {
   self.init(red: red, green: green, blue: blue, alpha: 1)
  }
 
- @_disfavoredOverload init(components: [Double]) {
+ @_disfavoredOverload
+ init(components: [Double]) {
   self.init(
    red: components[0],
    green: components[1],
@@ -66,7 +67,7 @@ public extension RGBAComponent {
  func unsafeMap(
   transform: @escaping (Double) -> Double
  ) -> Self {
-  let comp = self.components.map { transform($0) }
+  let comp = components.map { transform($0) }
   return Self(red: comp[0], green: comp[1], blue: comp[2], alpha: alpha)
  }
 
@@ -84,16 +85,17 @@ public extension RGBAComponent {
  }
 
  @_disfavoredOverload
- @inlinable static var clear: Self { Self() }
+ @inlinable
+ static var clear: Self { Self() }
 
  var alpha: Double { components[3] }
- var hue: Double { self.hsbComponents[0] }
- var saturation: Double { self.hsbComponents[1] }
- var brightness: Double { self.hsbComponents[2] }
- var luminosity: Double { self.hslComponents[2] }
- var hex: String { self.hexComponents.joined() }
+ var hue: Double { hsbComponents[0] }
+ var saturation: Double { hsbComponents[1] }
+ var brightness: Double { hsbComponents[2] }
+ var luminosity: Double { hslComponents[2] }
+ var hex: String { hexComponents.joined() }
 
- var rgbComponents: [Double] { [self.red, self.green, self.blue] }
+ var rgbComponents: [Double] { [red, green, blue] }
 
  static func == (lhs: Self, rhs: some RGBAComponent) -> Bool {
   lhs.red == rhs.red
@@ -113,10 +115,10 @@ public extension RGBAComponent {
 
  func encode(to encoder: Encoder) throws {
   var container = encoder.container(keyedBy: ColorCodingKeys.self)
-  try container.encode(self.red, forKey: .red)
-  try container.encode(self.green, forKey: .green)
-  try container.encode(self.blue, forKey: .blue)
-  try container.encode(self.alpha, forKey: .alpha)
+  try container.encode(red, forKey: .red)
+  try container.encode(green, forKey: .green)
+  try container.encode(blue, forKey: .blue)
+  try container.encode(alpha, forKey: .alpha)
  }
 
  func compare(
@@ -141,7 +143,7 @@ public extension RGBAComponent {
   }
  }
 
- var inverted: Self { self.unsafeMap { (1 - $0).squeezed } }
+ var inverted: Self { unsafeMap { (1 - $0).squeezed } }
 
  func blendColor(
   _ color: some RGBAComponent,
@@ -149,9 +151,9 @@ public extension RGBAComponent {
  ) -> Self {
   Self(
    components:
-   self.compare(color) { lhs, rhs -> Double in (1 - midpoint) *
+   compare(color) { lhs, rhs -> Double in (1 - midpoint) *
     pow(lhs, 2) + (midpoint * pow(rhs, 2))
-   } + [(1 - midpoint) * self.alpha + (midpoint * color.alpha)]
+   } + [(1 - midpoint) * alpha + (midpoint * color.alpha)]
   )
  }
 
@@ -221,12 +223,24 @@ public extension RGBAComponent {
       q = v * (1 - f * s),
       t = v * (1 - (1 - f) * s)
   switch i.truncatingRemainder(dividingBy: 6) {
-  case 0: r = v; g = t; b = p
-  case 1: r = q; g = v; b = p
-  case 2: r = p; g = v; b = t
-  case 3: r = p; g = q; b = v
-  case 4: r = t; g = p; b = v
-  case 5: r = v; g = p; b = q
+  case 0: r = v
+   g = t
+   b = p
+  case 1: r = q
+   g = v
+   b = p
+  case 2: r = p
+   g = v
+   b = t
+  case 3: r = p
+   g = q
+   b = v
+  case 4: r = t
+   g = p
+   b = v
+  case 5: r = v
+   g = p
+   b = q
   default: break
   }
   self.init(red: r, green: g, blue: b, alpha: alpha)
@@ -295,8 +309,11 @@ public extension RGBAComponent {
     )
    }
   }
-  guard hexValue.count == 6,
-        let intCode = Int(hexValue, radix: 16) else { return nil }
+  guard
+   hexValue.count == 6,
+   let intCode = Int(hexValue, radix: 16) else {
+   return nil
+  }
   self.init(
    red: (intCode >> 16) & 0xFF,
    green: (intCode >> 8) & 0xFF,
@@ -306,7 +323,7 @@ public extension RGBAComponent {
  }
 
  var hslComponents: [Double] {
-  let r = self.red, g = self.green, b = self.blue
+  let r = red, g = green, b = blue
   let maximum = max(r, g, b),
       minimum = min(r, g, b),
       avg = (maximum + minimum) / 2
@@ -316,9 +333,9 @@ public extension RGBAComponent {
 
   if minimum != maximum {
    let d = maximum - minimum
-   s = l > 0.5 ?
-    d / (2 - maximum - minimum) :
-    d / (maximum + minimum)
+   s = l > 0.5
+    ? d / (2 - maximum - minimum)
+    : d / (maximum + minimum)
    switch maximum {
    case r:
     h = (g - b) / d + (g < b ? 6 : 0)
@@ -330,17 +347,18 @@ public extension RGBAComponent {
    }
    h /= 6
   } else {
-   h = 0; s = 0
+   h = 0
+   s = 0
   }
-  return [h, s, l, self.alpha]
+  return [h, s, l, alpha]
  }
 
  var webComponents: [Int] {
-  self.rgbComponents.map(\.toWeb)
+  rgbComponents.map(\.toWeb)
  }
 
  var hexComponents: [String] {
-  self.webComponents.map {
+  webComponents.map {
    String(format: "%2X", $0).replacingOccurrences(of: " ", with: "0")
   }
  }
@@ -370,125 +388,132 @@ public extension RGBAComponent {
 
  func alpha(_ value: Double) -> Self {
   Self(
-   red: self.red,
-   green: self.green,
-   blue: self.blue,
-   alpha: self.alpha * value
+   red: red,
+   green: green,
+   blue: blue,
+   alpha: alpha * value
   )
  }
 
  func transform(_ value: @escaping (Double) -> Double) -> Self {
   Self(
-   red: value(self.red).squeezed,
-   green: value(self.green).squeezed,
-   blue: value(self.blue).squeezed,
-   alpha: self.alpha
+   red: value(red).squeezed,
+   green: value(green).squeezed,
+   blue: value(blue).squeezed,
+   alpha: alpha
   )
  }
 
  func withHue(_ value: Double) -> Self {
   Self(
    hue: value,
-   saturation: self.saturation,
-   brightness: self.brightness,
-   alpha: self.alpha
+   saturation: saturation,
+   brightness: brightness,
+   alpha: alpha
   )
  }
 
  func withSaturation(_ value: Double) -> Self {
   Self(
-   hue: self.hue,
+   hue: hue,
    saturation: value,
-   brightness: self.brightness,
-   alpha: self.alpha
+   brightness: brightness,
+   alpha: alpha
   )
  }
 
  func withBrightness(_ value: Double) -> Self {
   Self(
-   hue: self.hue,
-   saturation: self.saturation,
+   hue: hue,
+   saturation: saturation,
    brightness: value,
-   alpha: self.alpha
+   alpha: alpha
   )
  }
 
  func withInversion(_ value: Double) -> Self {
-  self.transform { 1 - $0 * value }
+  transform { 1 - $0 * value }
  }
 
  func luminosity(_ value: Double) -> Self {
   Self(
-   hue: self.hue, saturation: self.saturation,
-   luminosity: value, alpha: self.alpha
+   hue: hue, saturation: saturation,
+   luminosity: value, alpha: alpha
   )
  }
 
  /// (0-1)
  func brighten(_ value: Double) -> Self {
-  self.withBrightness(
-   (self.brightness + value).clamp(0, 1)
+  withBrightness(
+   (brightness + value).clamp(0, 1)
   )
-  .alpha(self.alpha)
+  .alpha(alpha)
  }
 
  /// (0-1)
  func darken(_ value: Double) -> Self {
-  self.withBrightness(
-    (self.brightness - value).clamp(0, 1)
+  withBrightness(
+   (brightness - value).clamp(0, 1)
   )
  }
 
  var lightenedToAlpha: Self {
-  guard self.alpha < 1 else { return self }
-  return self.brighten(self.alpha)
+  guard alpha < 1 else {
+   return self
+  }
+  return brighten(alpha)
  }
 
  var darkenedToAlpha: Self {
-  guard self.alpha < 1 else { return self }
-  return self.darken(self.alpha)
+  guard alpha < 1 else {
+   return self
+  }
+  return darken(alpha)
  }
 
  var computedBrightness: Double {
   //  (self.red + self.green + self.blue + self.alpha) / 4
-  (self.red + self.green + self.blue + self.alpha) / 4
+  (red + green + blue + alpha) / 4
  }
- var isDark: Bool { self.luminosity < 0.55 }
- var isLight: Bool { !self.isDark }
+
+ var isDark: Bool { luminosity < 0.55 }
+ var isLight: Bool { !isDark }
 
  func isVisible(with background: some RGBAComponent) -> Bool {
-  guard self.isTransparent else {
-   let ratio = self.luminosity / background.luminosity
+  guard isTransparent else {
+   let ratio = luminosity / background.luminosity
    return ratio > 2
   }
   return (
-   (self.red + self.green + self.blue - self.alpha) + (
+   (red + green + blue - alpha) + (
     background.red + background.green + background.blue
    )
   ) / 2 > 1
  }
 
- var isOpaque: Bool { self.alpha == 1 }
+ var isOpaque: Bool { alpha == 1 }
 
- var isTransparent: Bool { !self.isOpaque }
+ var isTransparent: Bool { !isOpaque }
 
  var opaque: Self {
-  guard self.isTransparent else { return self }
-  return self.alpha(1)
+  guard isTransparent else {
+   return self
+  }
+  return alpha(1)
  }
 
  func darkBlend(_ color: some RGBAComponent) -> Self {
-  (self.darken(0.15) + color).withSaturation(0.75)
- }
- 
- func brightBlend(_ color: some RGBAComponent) -> Self {
-  (self.brighten(0.15) + color).withSaturation(0.75)
+  (darken(0.15) + color).withSaturation(0.75)
  }
 
- var shadow: Self { self.luminosity(0.35) }
- var darkened: Self { self.withBrightness(0.8).withSaturation(0.75) }
- var overlay: Self { self.alpha(0.8).withSaturation(0.75) }
- var highlight: Self { self.luminosity(0.9) }
+ func brightBlend(_ color: some RGBAComponent) -> Self {
+  (brighten(0.15) + color).withSaturation(0.75)
+ }
+
+ var shadow: Self { luminosity(0.35) }
+ var darkened: Self { withBrightness(0.8).withSaturation(0.75) }
+ var overlay: Self { alpha(0.8).withSaturation(0.75) }
+ var highlight: Self { luminosity(0.9) }
 
  static func ?? <A: RGBAComponent>(lhs: A?, rhs: Self) -> A { A(lhs ?? A(rhs)) }
 
@@ -541,10 +566,14 @@ public extension RGBAComponent {
   )
  }
 
- @inlinable var secondary: Self { alpha(0.88) }
- @inlinable var tertiary: Self { alpha(0.77) }
- @inlinable var quaternary: Self { alpha(0.66) }
- @inlinable var quinary: Self { alpha(0.55) }
+ @inlinable
+ var secondary: Self { alpha(0.88) }
+ @inlinable
+ var tertiary: Self { alpha(0.77) }
+ @inlinable
+ var quaternary: Self { alpha(0.66) }
+ @inlinable
+ var quinary: Self { alpha(0.55) }
  @inlinable
  static var shadow: Self { Self(white: 0, alpha: 0.33) }
  @inlinable

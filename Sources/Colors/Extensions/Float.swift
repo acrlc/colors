@@ -8,7 +8,7 @@ extension Double {
   return (self * divisor).rounded() / divisor
  }
 
- var rounded: Self { self.roundTo(to: roundValue) }
+ var rounded: Self { roundTo(to: roundValue) }
  var squeezed: Self { doubleRange.squeeze(self) }
  var toWeb: Int { Int(self * 255) }
 }
@@ -16,7 +16,7 @@ extension Double {
 extension Int {
  var webRange: ClosedRange<Int> { 0 ... 255 }
  var squeezed: Int { webRange.squeeze(self) }
- var fromWeb: Double { (Double(self.squeezed) / 255).rounded }
+ var fromWeb: Double { (Double(squeezed) / 255).rounded }
 }
 
 public extension Comparable {

@@ -8,11 +8,11 @@ extension Color: RGBAComponent {
  }
 
  public var components: [Double] {
-  self.nativeColor.components
+  nativeColor.components
  }
 
  public var hsbComponents: [Double] {
-  self.nativeColor.hsbComponents
+  nativeColor.hsbComponents
  }
 }
 
@@ -59,7 +59,8 @@ public extension Color {
  #if os(iOS)
  @inlinable
  static var accent: Self {
-  guard let color =
+  guard
+   let color =
    Color.Native(named: "AccentColor") else {
    return Self(uiColor: Color.accentColor)
   }
@@ -111,12 +112,14 @@ public extension Color {
  @available(macOS 12.0, *)
  @inlinable
  static var accent: Self {
-  guard let color =
-         Color.Native(named: "AccentColor") else {
+  guard
+   let color =
+   Color.Native(named: "AccentColor") else {
    return Self(nsColor: .controlAccentColor)
   }
   return Self(nsColor: color)
  }
+
  @available(macOS 12.0, *)
  @inlinable
  static var background: Self { Self(nsColor: .windowBackgroundColor) }
@@ -146,10 +149,11 @@ public extension Color {
 
  /// Adjusts to overlay the background color.
  static func aligned(to background: Self, with overlay: Self) -> Self {
-  (overlay + (background.isDark ? Self.black : Self.white)) / background
+  (overlay + (background.isDark ? black : white)) / background
  }
 
- static func aligned(to background: Self) -> (isLightForeground: Bool, foreground: Self) {
+ static func aligned(to background: Self)
+  -> (isLightForeground: Bool, foreground: Self) {
   let isLight = background.isDark
   return (isLight, isLight ? Self.white : Self.black)
  }
@@ -179,7 +183,7 @@ public extension Color.Native {
       alpha: CGFloat = 0
 
   #if os(macOS)
-  let `self` = self.usingColorSpace(.sRGB)!
+  let `self` = usingColorSpace(.sRGB)!
   #endif
   self.getRed(&red, green: &green, blue: &blue, alpha: &alpha)
   return [
@@ -190,10 +194,10 @@ public extension Color.Native {
   ]
  }
 
- var red: Double { self.components[0] }
- var green: Double { self.components[1] }
- var blue: Double { self.components[2] }
- var alpha: Double { self.components[3] }
+ var red: Double { components[0] }
+ var green: Double { components[1] }
+ var blue: Double { components[2] }
+ var alpha: Double { components[3] }
 
  var hsbComponents: [Double] {
   var hue: CGFloat = 0,
