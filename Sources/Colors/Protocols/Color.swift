@@ -11,9 +11,10 @@ extension Color: RGBAComponent {
   nativeColor.components
  }
 
- public var hsbComponents: [Double] {
-  nativeColor.hsbComponents
- }
+ public var hsbComponents:
+  (hue: Double, saturation: Double, brightness: Double, alpha: Double) {
+   nativeColor.hsbComponents
+  }
 }
 
 #elseif canImport(TokamakCore)
@@ -38,15 +39,13 @@ public extension Color {
  typealias Native = NSColor
  #elseif os(iOS)
  typealias Native = UIColor
- #elseif os(WASI)
- typealias Native = Color
+ #elseif canImport(TokamakCore)
+ typealias Native = TokamakCore.Color
  #endif
  init(red: Double, green: Double, blue: Double, alpha: Double) {
   self.init(.sRGB, red: red, green: green, blue: blue, opacity: alpha)
  }
-}
 
-public extension Color {
  init(native: Color.Native) {
   self.init(
    red: native.red,
@@ -56,6 +55,36 @@ public extension Color {
   )
  }
 
+ #if os(macOS)
+ @_transparent
+ init(name: String? = nil, dynamicColor: @escaping (ColorScheme) -> Color) {
+  self.init(
+   native:
+   Native(name: name) { appearance in
+    let scheme: ColorScheme = switch appearance.name {
+    case .darkAqua, .vibrantDark: .dark
+    default: .light
+    }
+    return dynamicColor(scheme).nativeColor
+   }
+  )
+ }
+ #else
+ @_transparent
+ init(dynamicColor: @escaping (ColorScheme) -> Color) {
+  self.init(
+   native:
+   Native { appearance in
+    let scheme: ColorScheme =
+     appearance.userInterfaceStyle == .dark ? .dark : .light
+    return dynamicColor(scheme).nativeColor
+   }
+  )
+ }
+ #endif
+}
+
+public extension Color {
  #if os(iOS)
  @inlinable
  static var background: Self { Self(uiColor: .systemBackground) }
@@ -79,6 +108,10 @@ public extension Color {
  @inlinable
  static var secondaryGroupedBackground: Self {
   Self(uiColor: .secondarySystemGroupedBackground)
+ }
+ @inlinable
+ static var tertiaryGroupedBackground: Self {
+  Self(uiColor: .tertiarySystemGroupedBackground)
  }
 
  @inlinable
@@ -130,13 +163,44 @@ public extension Color {
  }
 
  static func aligned(to background: Self)
-  -> (isLightForeground: Bool, foreground: Self) {
+  -> (isLightForeground: Bool, foreground: Self)
+ {
   let isLight = background.isDark
   return (isLight, isLight ? Self.white : Self.black)
  }
 
- static var orangeRed: Self {
-  .red.darkBlend(Color.orange)
+ static var graphite: Self {
+  Color { colorScheme in
+   if colorScheme == .dark {
+    Color(red: 0.5490196078, green: 0.5490196078, blue: 0.5490196078)
+   } else {
+    Color(red: 0.5960784314, green: 0.5960784314, blue: 0.5960784314)
+   }
+  }
+ }
+
+ static var flame: Self {
+  Color {
+   let orange =
+    Color(red: 0.968627451, green: 0.5098039216, blue: 0.1058823529)
+   let color = (orange * Color.red).saturation(2.75) as Color
+   if $0 == .dark {
+    return color.darkBlend(color, 0.05)
+   } else {
+    return color
+   }
+  }
+ }
+
+ static var sky: Self {
+  Color {
+   let color = Color(red: 0.1215686275, green: 0.7176470588, blue: 0.9803921569)
+   if $0 == .dark {
+    return color.darkBlend(color, 0.05)
+   } else {
+    return color
+   }
+  }
  }
 }
 
@@ -176,34 +240,67 @@ public extension Color.Native {
  var blue: Double { components[2] }
  var alpha: Double { components[3] }
 
- var hsbComponents: [Double] {
-  var hue: CGFloat = 0,
-      saturation: CGFloat = 0,
-      brightness: CGFloat = 0,
-      alpha: CGFloat = 0
+ var hsbComponents:
+  (hue: Double, saturation: Double, brightness: Double, alpha: Double) {
+   var hue: CGFloat = 0,
+       saturation: CGFloat = 0,
+       brightness: CGFloat = 0,
+       alpha: CGFloat = 0
 
-  #if os(macOS)
-  usingColorSpace(.sRGB)?
-   .getHue(
+   #if os(macOS)
+   usingColorSpace(.sRGB)?
+    .getHue(
+     &hue,
+     saturation: &saturation,
+     brightness: &brightness,
+     alpha: &alpha
+    )
+   #elseif os(iOS)
+   getHue(
     &hue,
     saturation: &saturation,
     brightness: &brightness,
     alpha: &alpha
    )
-  #elseif os(iOS)
-  getHue(
-   &hue,
-   saturation: &saturation,
-   brightness: &brightness,
-   alpha: &alpha
+   #endif
+   return (
+    Double(hue),
+    Double(saturation),
+    Double(brightness),
+    Double(alpha)
+   )
+  }
+}
+#endif
+
+#if canImport(SwiftUI)
+#Preview {
+ ForEach([Color.sky, Color.flame], id: \.hashValue) { color in
+  let hsl = color.hslComponents
+  let hsb = color.hsbComponents
+
+  // MARK: Colors Implementation
+  Color(
+   hue: hsl.hue,
+   saturation: hsl.saturation,
+   luminosity: hsl.luminosity,
+   alpha: color.alpha
   )
-  #endif
-  return [
-   Double(hue),
-   Double(saturation),
-   Double(brightness),
-   Double(alpha)
-  ]
+
+  Color(
+   hue: hsb.hue,
+   saturation: hsb.saturation,
+   brightness: hsb.brightness,
+   alpha: color.alpha
+  )
+
+  // MARK: SwiftUICore Implementation
+  Color(
+   hue: hsb.hue,
+   saturation: hsb.saturation,
+   brightness: hsb.brightness,
+   opacity: color.alpha
+  )
  }
 }
 #endif

@@ -1,4 +1,5 @@
 import Foundation
+
 public protocol RGBComponent {
  var red: Double { get }
  var green: Double { get }
@@ -36,7 +37,8 @@ public protocol RGBAComponent:
  RGBComponent,
  Codable,
  Hashable,
- Equatable {
+ Equatable
+{
  var red: Double { get }
  var green: Double { get }
  var blue: Double { get }
@@ -90,10 +92,9 @@ public extension RGBAComponent {
  static var clear: Self { Self() }
 
  var alpha: Double { components[3] }
- var hue: Double { hsbComponents[0] }
- var saturation: Double { hsbComponents[1] }
- var brightness: Double { hsbComponents[2] }
- var luminosity: Double { hslComponents[2] }
+// var hue: Double { hslComponents[0] }
+// var saturation: Double { hslComponents[1] }
+// var luminosity: Double { hslComponents[2] }
  var hex: String { hexComponents.joined() }
 
  var rgbComponents: [Double] { [red, green, blue] }
@@ -312,7 +313,8 @@ public extension RGBAComponent {
   }
   guard
    hexValue.count == 6,
-   let intCode = Int(hexValue, radix: 16) else {
+   let intCode = Int(hexValue, radix: 16)
+  else {
    return nil
   }
   self.init(
@@ -323,7 +325,7 @@ public extension RGBAComponent {
   )
  }
 
- var hslComponents: [Double] {
+ var hslComponents: (hue: Double, saturation: Double, luminosity: Double) {
   let r = red, g = green, b = blue
   let maximum = max(r, g, b),
       minimum = min(r, g, b),
@@ -351,7 +353,7 @@ public extension RGBAComponent {
    h = 0
    s = 0
   }
-  return [h, s, l, alpha]
+  return (h, s, l)
  }
 
  var webComponents: [Int] {
@@ -365,7 +367,7 @@ public extension RGBAComponent {
  }
 
  @_disfavoredOverload
- var hsbComponents: [Double] {
+ var hsbComponents: (hue: Double, saturation: Double, brightness: Double) {
   let red: Double = red / 255
   let green: Double = green / 255
   let blue: Double = blue / 255
@@ -384,7 +386,7 @@ public extension RGBAComponent {
    h = 60 * (red - green) / (max - min) + 240
   }
   let s = (max == 0) ? 0.0 : (1.0 - (min / max))
-  return [h, s, max]
+  return (h, s, max)
  }
 
  func alpha(_ value: Double) -> Self {
@@ -405,28 +407,31 @@ public extension RGBAComponent {
   )
  }
 
- func withHue(_ value: Double) -> Self {
-  Self(
+ func hue(_ value: Double) -> Self {
+  let (_, s, l) = hslComponents
+  return Self(
    hue: value,
-   saturation: saturation,
-   brightness: brightness,
+   saturation: s,
+   luminosity: l,
    alpha: alpha
   )
  }
 
- func withSaturation(_ value: Double) -> Self {
-  Self(
-   hue: hue,
+ func saturation(_ value: Double) -> Self {
+  let (h, _, l) = hslComponents
+  return Self(
+   hue: h,
    saturation: value,
-   brightness: brightness,
+   luminosity: l,
    alpha: alpha
   )
  }
 
- func withBrightness(_ value: Double) -> Self {
-  Self(
-   hue: hue,
-   saturation: saturation,
+ func brightness(_ value: Double) -> Self {
+  let (h, s, _) = hsbComponents
+  return Self(
+   hue: h,
+   saturation: s,
    brightness: value,
    alpha: alpha
   )
@@ -437,25 +442,27 @@ public extension RGBAComponent {
  }
 
  func luminosity(_ value: Double) -> Self {
-  Self(
-   hue: hue, saturation: saturation,
+  let (h, s, _) = hslComponents
+  return Self(
+   hue: h, saturation: s,
    luminosity: value, alpha: alpha
   )
  }
 
  /// (0-1)
  func brighten(_ value: Double) -> Self {
-  withBrightness(
-   (brightness + value).clamp(0, 1)
+  luminosity(
+   (hslComponents.luminosity + value).clamp(0, 1)
   )
   .alpha(alpha)
  }
 
  /// (0-1)
  func darken(_ value: Double) -> Self {
-  withBrightness(
-   (brightness - value).clamp(0, 1)
+  luminosity(
+   (hslComponents.luminosity - value).clamp(0, 1)
   )
+  .alpha(alpha)
  }
 
  var lightenedToAlpha: Self {
@@ -473,16 +480,16 @@ public extension RGBAComponent {
  }
 
  var computedBrightness: Double {
-  //  (self.red + self.green + self.blue + self.alpha) / 4
   (red + green + blue + alpha) / 4
  }
 
- var isDark: Bool { luminosity < 0.55 }
+ var isDark: Bool { hslComponents.luminosity < 0.55 }
  var isLight: Bool { !isDark }
 
  func isVisible(with background: some RGBAComponent) -> Bool {
   guard isTransparent else {
-   let ratio = luminosity / background.luminosity
+   let luminosity = hslComponents.luminosity
+   let ratio = luminosity / background.hslComponents.luminosity
    return ratio > 2
   }
   return (
@@ -503,16 +510,16 @@ public extension RGBAComponent {
   return alpha(1)
  }
 
- func darkBlend(_ color: some RGBAComponent) -> Self {
-  (darken(0.15) + color).withSaturation(0.75)
+ func darkBlend(_ color: some RGBAComponent, _ amount: Double) -> Self {
+  (darken(amount) * color).saturation(1.75)
  }
 
- func brightBlend(_ color: some RGBAComponent) -> Self {
-  (brighten(0.15) + color).withSaturation(0.75)
+ func brightBlend(_ color: some RGBAComponent, _ amount: Double) -> Self {
+  (brighten(amount) * color).saturation(1.75)
  }
 
  var shadow: Self { luminosity(0.35) }
- var overlay: Self { alpha(0.8).withSaturation(0.75) }
+ var overlay: Self { alpha(0.8).saturation(0.75) }
  var highlight: Self { luminosity(0.9) }
 
  static func ?? <A: RGBAComponent>(lhs: A?, rhs: Self) -> A { A(lhs ?? A(rhs)) }
@@ -533,9 +540,17 @@ public extension RGBAComponent {
  }
 
  @inlinable @_disfavoredOverload
- static var graphite: Self { Self(red: 0.56, green: 0.56, blue: 0.55) }
+ static var graphite: Self {
+  Self(red: 0.5960784314, green: 0.5960784314, blue: 0.5960784314)
+ }
+ @inlinable @_disfavoredOverload
  static var sky: Self {
   Self(red: 0.1215686275, green: 0.7176470588, blue: 0.9803921569)
+ }
+ @inlinable @_disfavoredOverload
+ static var flame: Self {
+  let orange = Self(red: 0.968627451, green: 0.5098039216, blue: 0.1058823529)
+  return (orange * Self.red).saturation(2.75) as Self
  }
 }
 
